@@ -26,10 +26,12 @@ RepoInsight is an intelligent developer tool that instantly analyzes any public 
    ```
 
 2. **Environment Setup:**
-   Create a `.env` file in the root directory and add your OpenRouter API key:
+   Create a `.env` file in the root directory and add your API keys:
    ```env
-   OPENROUTER_API_KEY=your_api_key_here
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   GITHUB_TOKEN=your_github_personal_access_token_here
    ```
+   *(Note: The `GITHUB_TOKEN` is highly recommended to prevent GitHub API rate limits, especially in production).*
 
 3. **Start the development server:**
    ```bash
@@ -39,4 +41,4 @@ RepoInsight is an intelligent developer tool that instantly analyzes any public 
 
 ## ☁️ Deployment
 
-This project is configured for 1-click deployment on [Render](https://render.com/) using the included `render.yaml` blueprint. Simply connect your GitHub repository to Render as a Blueprint instance and provide your `OPENROUTER_API_KEY`.
+This project is configured for 1-click deployment on [Render](https://render.com/) using the included `render.yaml` blueprint. Simply connect your GitHub repository to Render as a Blueprint instance and provide your `OPENROUTER_API_KEY` and `GITHUB_TOKEN`.

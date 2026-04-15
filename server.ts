@@ -15,57 +15,14 @@ async function startServer() {
 
   // API Route for analysis
   app.post("/api/analyze", async (req, res) => {
-    const { githubUrl } = req.body;
+    const { githubUrl, readmeContent, repoDescription } = req.body;
 
     if (!githubUrl) {
       return res.status(400).json({ error: "GitHub URL is required" });
     }
 
     try {
-      // 1. Parse GitHub URL to get owner and repo
-      const match = githubUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
-      if (!match) {
-        return res.status(400).json({ error: "Invalid GitHub URL" });
-      }
-
-      const [_, owner, repo] = match;
-      const cleanRepo = repo.replace(/\.git$/, "");
-
-      // 2. Fetch repository details and README
-      let readmeContent = "";
-      try {
-        // First check if repo exists and get basic info
-        const repoRes = await axios.get(`https://api.github.com/repos/${owner}/${cleanRepo}`);
-        const repoDescription = repoRes.data.description || "No description provided.";
-
-        // Then try to get the README
-        try {
-          const readmeRes = await axios.get(`https://api.github.com/repos/${owner}/${cleanRepo}/readme`, {
-            headers: {
-              Accept: "application/vnd.github.raw",
-            },
-          });
-          readmeContent = readmeRes.data;
-        } catch (readmeErr: any) {
-          if (readmeErr.response?.status === 404) {
-            // It's normal for some repos to not have a README
-            readmeContent = `No README found. Repository description: ${repoDescription}`;
-          } else {
-            console.warn(`Warning: Could not fetch README for ${owner}/${cleanRepo}:`, readmeErr.message);
-            readmeContent = `Could not fetch README. Repository description: ${repoDescription}`;
-          }
-        }
-      } catch (repoErr: any) {
-        if (repoErr.response?.status === 404) {
-          return res.status(404).json({ error: "Repository not found. Maybe the repository is private or the URL is incorrect." });
-        } else if (repoErr.response?.status === 403 || repoErr.response?.status === 429) {
-          return res.status(429).json({ error: "GitHub API rate limit exceeded. Please try again later." });
-        }
-        console.error("Error fetching from GitHub:", repoErr.message);
-        return res.status(500).json({ error: "Failed to communicate with GitHub API." });
-      }
-
-      // 3. Call OpenRouter API
+      // 1. Call OpenRouter API
       const openRouterApiKey = process.env.OPENROUTER_API_KEY;
       if (!openRouterApiKey) {
         return res.status(500).json({ error: "OpenRouter API key not configured" });
@@ -74,8 +31,11 @@ async function startServer() {
       const prompt = `
         Analyze the following GitHub repository: ${githubUrl}
         
+        Repository Description:
+        ${repoDescription || "No description provided."}
+        
         README Content:
-        ${readmeContent.substring(0, 8000)} // Limit to 8000 chars for safety
+        ${(readmeContent || "").substring(0, 8000)} // Limit to 8000 chars for safety
         
         Please provide a highly comprehensive analysis in JSON format with the following structure:
         {

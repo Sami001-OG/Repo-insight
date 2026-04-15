@@ -45,10 +45,53 @@ export default function App() {
     }
 
     try {
+      // 1. Parse GitHub URL to get owner and repo
+      const match = formattedUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+      if (!match) {
+        throw new Error("Please enter a valid GitHub repository URL.");
+      }
+      const [_, owner, repo] = match;
+      const cleanRepo = repo.replace(/\.git$/, "");
+
+      // 2. Fetch repository details from GitHub directly (Client-side)
+      let repoDescription = "No description provided.";
+      try {
+        const repoRes = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}`);
+        if (!repoRes.ok) {
+          if (repoRes.status === 404) throw new Error("Repository not found. It might be private or the URL is incorrect.");
+          if (repoRes.status === 403 || repoRes.status === 429) throw new Error("GitHub API rate limit exceeded. Please try again later.");
+          throw new Error("Failed to fetch repository details from GitHub.");
+        }
+        const repoData = await repoRes.json();
+        repoDescription = repoData.description || repoDescription;
+      } catch (err: any) {
+        throw err; // Re-throw to be caught by outer catch block
+      }
+
+      // 3. Fetch README from GitHub directly
+      let readmeContent = "";
+      try {
+        const readmeRes = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}/readme`, {
+          headers: { Accept: "application/vnd.github.raw" }
+        });
+        if (readmeRes.ok) {
+          readmeContent = await readmeRes.text();
+        } else {
+          readmeContent = `No README found. Repository description: ${repoDescription}`;
+        }
+      } catch (err) {
+        readmeContent = `Could not fetch README. Repository description: ${repoDescription}`;
+      }
+
+      // 4. Send to our backend for AI analysis
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ githubUrl: formattedUrl }),
+        body: JSON.stringify({ 
+          githubUrl: formattedUrl,
+          readmeContent,
+          repoDescription
+        }),
       });
 
       if (!response.ok) {
