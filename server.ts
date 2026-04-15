@@ -37,7 +37,7 @@ async function startServer() {
         README Content:
         ${(readmeContent || "").substring(0, 8000)} // Limit to 8000 chars for safety
         
-        Please provide a highly comprehensive analysis in JSON format with the following structure:
+        Please provide a highly comprehensive analysis in JSON format. You MUST use EXACTLY these keys:
         {
           "overview": "A detailed summary of what the project is, its purpose, and its core features.",
           "buildGuide": "A highly detailed, step-by-step execution guide on how a user can implement, build, and run this entire project from scratch on their own. Include terminal commands and configuration steps.",
@@ -49,8 +49,9 @@ async function startServer() {
           "difficulty": "Beginner/Intermediate/Advanced"
         }
         
-        Ensure the output is ONLY the JSON object. Do not include any conversational text.
-        IMPORTANT: Ensure all strings are properly escaped. Do not use unescaped quotes or literal newlines inside strings. Use \\n for newlines.
+        Ensure the output is ONLY a valid JSON object. Do not include any conversational text, markdown formatting, or code blocks.
+        IMPORTANT: Use double quotes for all keys and string values. Ensure all strings are properly escaped. Do not use unescaped quotes or literal newlines inside strings. Use \\n for newlines.
+        CRITICAL: You must include ALL 6 keys ("overview", "buildGuide", "equipment", "roadmap", "techStack", "difficulty") exactly as written.
       `;
 
       const openRouterRes = await axios.post(
@@ -59,6 +60,7 @@ async function startServer() {
           model: "nvidia/nemotron-3-super-120b-a12b:free",
           messages: [{ role: "user", content: prompt }],
           max_tokens: 4000,
+          temperature: 0.2, // Lower temperature for more consistent JSON
         },
         {
           headers: {
@@ -70,14 +72,45 @@ async function startServer() {
         }
       );
 
-      let content = openRouterRes.data.choices[0].message.content;
-      // Strip markdown code blocks if the model wrapped the JSON
-      content = content.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+      if (!openRouterRes.data || !openRouterRes.data.choices || openRouterRes.data.choices.length === 0) {
+        console.error("OpenRouter API returned unexpected response:", JSON.stringify(openRouterRes.data));
+        return res.status(500).json({ error: "The AI service returned an unexpected response. Please try again." });
+      }
+
+      let content = openRouterRes.data.choices[0].message?.content;
+      
+      if (!content) {
+        console.error("OpenRouter API returned empty content:", JSON.stringify(openRouterRes.data));
+        return res.status(500).json({ error: "The AI service returned an empty response. Please try again." });
+      }
+      
+      // Extract the JSON object from the response to ignore any conversational text
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        content = jsonMatch[0];
+      } else {
+        // Fallback to stripping markdown
+        content = content.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+      }
       
       try {
         const repairedContent = jsonrepair(content);
-        const analysis = JSON.parse(repairedContent);
-        res.json(analysis);
+        let analysis = JSON.parse(repairedContent);
+        
+        // Normalize keys in case the AI capitalized them or nested them
+        if (analysis.analysis) analysis = analysis.analysis;
+        if (analysis.Analysis) analysis = analysis.Analysis;
+        
+        const normalizedAnalysis = {
+          overview: analysis.overview || analysis.Overview || analysis.ProjectOverview || analysis["Project Overview"] || "No overview provided.",
+          buildGuide: analysis.buildGuide || analysis.BuildGuide || analysis.build_guide || analysis["Build Guide"] || "No build guide provided.",
+          equipment: analysis.equipment || analysis.Equipment || analysis.hardware || analysis.Hardware || [],
+          roadmap: analysis.roadmap || analysis.Roadmap || analysis.deploymentRoadmap || analysis["Deployment Roadmap"] || [],
+          techStack: analysis.techStack || analysis.TechStack || analysis.tech_stack || analysis["Tech Stack"] || [],
+          difficulty: analysis.difficulty || analysis.Difficulty || "Unknown"
+        };
+        
+        res.json(normalizedAnalysis);
       } catch (parseError: any) {
         console.error("JSON Parsing Error:", parseError.message);
         console.error("Raw Content:", content);

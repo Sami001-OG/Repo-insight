@@ -194,11 +194,15 @@ export default function App() {
                       {result.overview}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {result.techStack?.map((tech, idx) => (
-                        <span key={idx} className="bg-[#F1F5F9] text-[#2563EB] px-2 py-1 rounded text-[12px] font-mono">
-                          {tech}
-                        </span>
-                      ))}
+                      {result.techStack && result.techStack.length > 0 ? (
+                        result.techStack.map((tech, idx) => (
+                          <span key={idx} className="bg-[#F1F5F9] text-[#2563EB] px-2 py-1 rounded text-[12px] font-mono">
+                            {tech}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-[#6B7280] italic">No tech stack detected.</span>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -212,12 +216,16 @@ export default function App() {
                   </CardHeader>
                   <CardContent className="p-5 pt-0 flex-1 overflow-auto">
                     <div className="space-y-1">
-                      {result.equipment?.map((item, idx) => (
-                        <div key={idx} className="flex justify-between py-2 border-b border-[#F8F9FA] text-[13px]">
-                          <span className="text-[#6B7280]">{item.split(":")[0]}</span>
-                          <strong className="text-[#1F2937]">{item.split(":")[1] || "Required"}</strong>
-                        </div>
-                      ))}
+                      {result.equipment && result.equipment.length > 0 ? (
+                        result.equipment.map((item, idx) => (
+                          <div key={idx} className="flex justify-between py-2 border-b border-[#F8F9FA] text-[13px]">
+                            <span className="text-[#6B7280]">{item.split(":")[0]}</span>
+                            <strong className="text-[#1F2937]">{item.split(":")[1] || "Required"}</strong>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-[#6B7280] italic">No specific hardware or infrastructure requirements listed.</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -247,12 +255,16 @@ export default function App() {
                   </CardHeader>
                   <CardContent className="p-5 pt-4">
                     <div className="timeline">
-                      {result.roadmap?.map((item, idx) => (
-                        <div key={idx} className="milestone">
-                          <h4 className="text-[13px] font-bold text-[#1F2937]">{item.phase}</h4>
-                          <p className="text-[11px] text-[#6B7280]">{item.tasks.join(", ")}</p>
-                        </div>
-                      ))}
+                      {result.roadmap && result.roadmap.length > 0 ? (
+                        result.roadmap.map((item, idx) => (
+                          <div key={idx} className="milestone">
+                            <h4 className="text-[13px] font-bold text-[#1F2937]">{item.phase}</h4>
+                            <p className="text-[11px] text-[#6B7280]">{item.tasks.join(", ")}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-[#6B7280] italic">No deployment roadmap available for this repository.</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
