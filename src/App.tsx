@@ -95,9 +95,10 @@ export default function App() {
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-bold h-8 px-3 rounded flex-shrink-0"
+                className="bg-[#2563EB] hover:bg-[#2563EB]/90 text-white text-xs font-bold h-8 px-3 rounded flex-shrink-0 flex items-center gap-1.5 transition-all w-[140px] justify-center sm:w-auto"
               >
-                {loading ? <Loader2 className="animate-spin" size={16} /> : <span className="hidden sm:inline">Generate Blueprint</span>}
+                {loading && <Loader2 className="animate-spin" size={14} />}
+                <span className="hidden sm:inline">{loading ? "Analyzing..." : "Generate Blueprint"}</span>
                 {!loading && <ChevronRight className="sm:hidden" size={16} />}
               </Button>
             </form>
